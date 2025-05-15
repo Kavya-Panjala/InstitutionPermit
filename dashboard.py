@@ -148,15 +148,16 @@ def hod_dashboard():
     start_of_month = today.replace(day=1)
     
     events_by_day = db.session.query(
-        func.dayofweek(Event.start_time), 
+        func.extract('dow', Event.start_time).label('day_of_week'), 
         func.count(Event.id)
     ).filter(
         Event.department == current_user.department,
         Event.start_time >= start_of_month
-    ).group_by(func.dayofweek(Event.start_time)).all()
+    ).group_by('day_of_week').all()
     
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    events_by_day_dict = {days[day-1]: count for day, count in events_by_day}
+    # PostgreSQL's extract(dow) returns 0 for Sunday, 1 for Monday, etc.
+    days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    events_by_day_dict = {days[int(day)]: count for day, count in events_by_day}
     
     return render_template(
         'hod_dashboard.html',
