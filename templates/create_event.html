@@ -1,0 +1,102 @@
+{% extends "layout.html" %}
+
+{% block title %}Create Event | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Create New Event</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('events.create_event') }}">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Event Title</label>
+                            <input type="text" class="form-control" id="title" name="title" placeholder="Enter event title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Event Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" placeholder="Describe your event in detail" required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Event Location</label>
+                            <input type="text" class="form-control" id="location" name="location" placeholder="Where will the event take place?" required>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="start_time" class="form-label">Start Time</label>
+                                <input type="time" class="form-control" id="start_time" name="start_time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="end_date" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_time" class="form-label">End Time</label>
+                                <input type="time" class="form-control" id="end_time" name="end_time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Events
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Submit for Approval
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Guidelines for Event Creation</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Provide a clear and specific title for your event</li>
+                        <li>Include all necessary details in the description</li>
+                        <li>Specify the exact location where the event will be held</li>
+                        <li>Set accurate start and end times</li>
+                        <li>Event request must be submitted at least 3 days before the event date</li>
+                        <li>Your request will be reviewed by the department HOD</li>
+                        <li>You will receive notification once your request is processed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set min date for date pickers (today)
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('start_date').setAttribute('min', today);
+        document.getElementById('end_date').setAttribute('min', today);
+        
+        // Update end date min value when start date changes
+        document.getElementById('start_date').addEventListener('change', function() {
+            document.getElementById('end_date').setAttribute('min', this.value);
+            
+            // If end date is before start date, update it
+            if (document.getElementById('end_date').value < this.value) {
+                document.getElementById('end_date').value = this.value;
+            }
+        });
+    });
+</script>
+{% endblock %}

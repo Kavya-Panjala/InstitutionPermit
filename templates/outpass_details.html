@@ -1,0 +1,255 @@
+{% extends "layout.html" %}
+
+{% block title %}Out Pass Details | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Out Pass Details</h4>
+                    <span class="badge {{ outpass.status | get_status_badge_class }} status-badge">{{ outpass.status | title }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Out Pass #</h6>
+                                <p class="mb-0">{{ outpass.id }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Status</h6>
+                                <p class="mb-0">{{ outpass.status | title }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Student</h6>
+                                <p class="mb-0">{{ student.first_name }} {{ student.last_name }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Department</h6>
+                                <p class="mb-0">{{ student.department }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Schedule</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6 class="text-muted">Leave Time</h6>
+                                    <p class="mb-0">{{ outpass.start_time.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-muted">Return Time</h6>
+                                    <p class="mb-0">{{ outpass.end_time.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-0">
+                                <h6 class="text-muted">Duration</h6>
+                                <p class="mb-0">
+                                    {% set duration = outpass.end_time - outpass.start_time %}
+                                    {% set days = duration.days %}
+                                    {% set hours = (duration.seconds // 3600) %}
+                                    {% set minutes = (duration.seconds % 3600) // 60 %}
+                                    
+                                    {% if days > 0 %}{{ days }} day{% if days > 1 %}s{% endif %}, {% endif %}
+                                    {% if hours > 0 %}{{ hours }} hour{% if hours > 1 %}s{% endif %}{% endif %}
+                                    {% if minutes > 0 %}{% if hours > 0 %}, {% endif %}{{ minutes }} minute{% if minutes > 1 %}s{% endif %}{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5 class="mb-3">Reason for Out Pass</h5>
+                        <div class="p-3 bg-dark rounded">
+                            <p class="mb-0">{{ outpass.reason }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if outpass.status in ['approved', 'rejected'] %}
+                    <div class="mb-4">
+                        <h5 class="mb-3">HOD Response</h5>
+                        <div class="p-3 {{ 'bg-success-subtle' if outpass.status == 'approved' else 'bg-danger-subtle' }} rounded">
+                            <p class="mb-2"><strong>{{ 'Approved' if outpass.status == 'approved' else 'Rejected' }} by:</strong> 
+                                {% if approver %}{{ approver.first_name }} {{ approver.last_name }}{% else %}Unknown{% endif %}
+                            </p>
+                            {% if outpass.approval_comment %}
+                            <p class="mb-0"><strong>Comments:</strong> {{ outpass.approval_comment }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex mt-4">
+                        <a href="{{ url_for('outpass.list_outpasses') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Out Passes
+                        </a>
+                        
+                        {% if current_user.id == outpass.user_id and outpass.status == 'pending' %}
+                        <form action="{{ url_for('outpass.cancel_outpass', outpass_id=outpass.id) }}" method="POST" class="ms-auto">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this out pass request?')">
+                                <i class="fas fa-times-circle me-2"></i>Cancel Request
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        {% if outpass.status == 'approved' and current_user.role == 'security' %}
+                        <div class="ms-auto">
+                            <button type="button" class="btn btn-success" onclick="verifyOutPass({{ outpass.id }})">
+                                <i class="fas fa-check-circle me-2"></i>Verify Out Pass
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if current_user.role == 'hod' and outpass.status == 'pending' %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Review Out Pass Request</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('outpass.approve_outpass', outpass_id=outpass.id) }}" method="POST">
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Comments (Required for rejection)</label>
+                            <textarea class="form-control" id="comment" name="comment" rows="3" placeholder="Add comments or reason for approval/rejection"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" name="decision" value="reject" class="btn btn-danger me-2">
+                                <i class="fas fa-times-circle me-2"></i>Reject
+                            </button>
+                            <button type="submit" name="decision" value="approve" class="btn btn-success">
+                                <i class="fas fa-check-circle me-2"></i>Approve
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Out Pass Timeline -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Out Pass Timeline</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">Request Submitted</h6>
+                                <small class="text-muted">{{ outpass.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <p class="mb-0 text-muted">By {{ student.first_name }} {{ student.last_name }}</p>
+                        </div>
+                        
+                        {% if outpass.status in ['approved', 'rejected'] %}
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">Request {{ outpass.status|title }}</h6>
+                                <small class="text-muted">{{ outpass.updated_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <p class="mb-0 text-muted">By {{ approver.first_name if approver else 'Unknown' }} {{ approver.last_name if approver else '' }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if outpass.status == 'approved' %}
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">Leave Campus</h6>
+                                <small class="text-muted">{{ outpass.start_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">Return to Campus</h6>
+                                <small class="text-muted">{{ outpass.end_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- QR Code for verification (for approved out passes) -->
+            {% if outpass.status == 'approved' %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Out Pass Verification</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="bg-light p-3 mb-3 d-inline-block">
+                        <i class="fas fa-qrcode fa-5x"></i>
+                    </div>
+                    <p class="mb-0">Show this to security when leaving campus</p>
+                    
+                    {% if outpass.start_time <= now and outpass.end_time >= now %}
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Active Now</strong>
+                    </div>
+                    {% elif outpass.start_time > now %}
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-clock me-2"></i>
+                        <strong>Upcoming</strong> - Valid from {{ outpass.start_time.strftime('%b %d, %I:%M %p') }}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-secondary mt-3">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        <strong>Expired</strong> - Was valid until {{ outpass.end_time.strftime('%b %d, %I:%M %p') }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Student Information (for HOD and security) -->
+            {% if current_user.role in ['hod', 'security'] %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Student Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-secondary rounded-circle p-3 me-3">
+                            <i class="fas fa-user fa-2x text-light"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">{{ student.first_name }} {{ student.last_name }}</h6>
+                            <small class="text-muted">{{ student.department }}</small>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Email</small>
+                        <p class="mb-0">{{ student.email }}</p>
+                    </div>
+                    <div>
+                        <small class="text-muted">Username</small>
+                        <p class="mb-0">{{ student.username }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function verifyOutPass(outpassId) {
+        // This is a placeholder for the verification functionality
+        alert('Out Pass #' + outpassId + ' verified successfully!');
+    }
+</script>
+{% endblock %}

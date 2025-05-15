@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}Login | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container auth-container">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white text-center py-3">
+            <h4 class="mb-0">Login</h4>
+        </div>
+        <div class="card-body p-4">
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required autofocus>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                    </div>
+                </div>
+                
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="card-footer text-center py-3">
+            <p class="mb-0">Don't have an account? <a href="{{ url_for('auth.register') }}">Register</a></p>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <h5>Example Access</h5>
+        <div class="row g-3 mt-2">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Student</h6>
+                        <p class="card-text small text-muted">
+                            Request events & outpasses
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">HOD</h6>
+                        <p class="card-text small text-muted">
+                            Approve requests & track attendance
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Security</h6>
+                        <p class="card-text small text-muted">
+                            View approved permissions
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

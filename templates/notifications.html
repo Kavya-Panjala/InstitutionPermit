@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block title %}Notifications | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">All Notifications</h4>
+                </div>
+                <div class="card-body p-0">
+                    {% if notifications %}
+                        <div class="list-group list-group-flush">
+                            {% for notification in notifications %}
+                                <div class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ notification.title }}</h5>
+                                        <small class="text-muted">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ notification.message }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="fas {{ 'fa-calendar-alt' if notification.related_to == 'event' else 'fa-sign-out-alt' }} me-1"></i>
+                                            {{ notification.related_to | title }}
+                                        </small>
+                                        {% if notification.related_to == 'event' %}
+                                            <a href="{{ url_for('events.view_event', event_id=notification.reference_id) }}" class="btn btn-sm btn-outline-primary">
+                                                View Event
+                                            </a>
+                                        {% elif notification.related_to == 'outpass' %}
+                                            <a href="{{ url_for('outpass.view_outpass', outpass_id=notification.reference_id) }}" class="btn btn-sm btn-outline-primary">
+                                                View Out Pass
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="far fa-bell fa-4x mb-3 text-muted"></i>
+                            <h5 class="text-muted">No notifications yet</h5>
+                            <p class="text-muted">You'll see notifications about events and out passes here</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if notifications %}
+                <div class="d-flex justify-content-end mt-3">
+                    <button id="clearAllBtn" class="btn btn-outline-danger">
+                        <i class="fas fa-trash-alt me-2"></i>Clear All Notifications
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) {
+                    // Here you would normally make an AJAX call to clear notifications
+                    // For now, we'll just redirect to the same page
+                    window.location.reload();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

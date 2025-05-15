@@ -1,0 +1,323 @@
+{% extends "layout.html" %}
+
+{% block title %}HOD Dashboard | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>HOD Dashboard</h2>
+        <div>
+            <span class="badge bg-primary">{{ current_user.department }}</span>
+        </div>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card pending h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Pending Approvals</h6>
+                    <h3>{{ pending_events|length + pending_outpasses|length }}</h3>
+                    <div class="d-flex justify-content-between mt-2">
+                        <small class="text-muted">{{ pending_events|length }} events</small>
+                        <small class="text-muted">{{ pending_outpasses|length }} outpasses</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card approved h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Upcoming Events</h6>
+                    <h3>{{ upcoming_events|length }}</h3>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+                    </div>
+                    <small class="text-muted">In your department</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Event Status</h6>
+                    <h3>{{ event_stats.approved|default(0) + event_stats.pending|default(0) + event_stats.rejected|default(0) }}</h3>
+                    <div class="d-flex justify-content-between mt-2">
+                        <div><span class="summary-indicator bg-success"></span> <small>{{ event_stats.approved|default(0) }} approved</small></div>
+                        <div><span class="summary-indicator bg-danger"></span> <small>{{ event_stats.rejected|default(0) }} rejected</small></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Out Pass Status</h6>
+                    <h3>{{ outpass_stats.approved|default(0) + outpass_stats.pending|default(0) + outpass_stats.rejected|default(0) }}</h3>
+                    <div class="d-flex justify-content-between mt-2">
+                        <div><span class="summary-indicator bg-success"></span> <small>{{ outpass_stats.approved|default(0) }} approved</small></div>
+                        <div><span class="summary-indicator bg-danger"></span> <small>{{ outpass_stats.rejected|default(0) }} rejected</small></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Pending Approvals Section -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="approvalTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" type="button" role="tab" aria-controls="events" aria-selected="true">
+                                Pending Events <span class="badge bg-warning text-dark">{{ pending_events|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="outpasses-tab" data-bs-toggle="tab" data-bs-target="#outpasses" type="button" role="tab" aria-controls="outpasses" aria-selected="false">
+                                Pending Out Passes <span class="badge bg-warning text-dark">{{ pending_outpasses|length }}</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="approvalTabsContent">
+                        <!-- Pending Events Tab -->
+                        <div class="tab-pane fade show active" id="events" role="tabpanel" aria-labelledby="events-tab">
+                            {% if pending_events %}
+                                <div class="list-group">
+                                    {% for event in pending_events %}
+                                        <a href="{{ url_for('events.view_event', event_id=event.id) }}" class="list-group-item list-group-item-action">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">{{ event.title }}</h6>
+                                                <small>{{ event.created_at.strftime('%Y-%m-%d') }}</small>
+                                            </div>
+                                            <p class="mb-1 text-truncate">{{ event.description }}</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-user me-1"></i> {{ event.creator.first_name }} {{ event.creator.last_name }}
+                                                    <i class="fas fa-calendar-alt ms-2 me-1"></i> {{ event.start_time.strftime('%Y-%m-%d %H:%M') }}
+                                                </small>
+                                                <div>
+                                                    <span class="badge bg-warning text-dark">Pending</span>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-clipboard-check fa-3x mb-3 text-muted"></i>
+                                    <p class="text-muted">No pending event requests</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Pending Out Passes Tab -->
+                        <div class="tab-pane fade" id="outpasses" role="tabpanel" aria-labelledby="outpasses-tab">
+                            {% if pending_outpasses %}
+                                <div class="list-group">
+                                    {% for outpass in pending_outpasses %}
+                                        <a href="{{ url_for('outpass.view_outpass', outpass_id=outpass.id) }}" class="list-group-item list-group-item-action">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">Out Pass #{{ outpass.id }}</h6>
+                                                <small>{{ outpass.created_at.strftime('%Y-%m-%d') }}</small>
+                                            </div>
+                                            <p class="mb-1 text-truncate">{{ outpass.reason }}</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-user me-1"></i> {{ student_map[outpass.user_id] }}
+                                                    <i class="fas fa-calendar-alt ms-2 me-1"></i> {{ outpass.start_time.strftime('%Y-%m-%d %H:%M') }} - {{ outpass.end_time.strftime('%Y-%m-%d %H:%M') }}
+                                                </small>
+                                                <div>
+                                                    <span class="badge bg-warning text-dark">Pending</span>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-clipboard-check fa-3x mb-3 text-muted"></i>
+                                    <p class="text-muted">No pending out pass requests</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notifications Section -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Notifications</h5>
+                    <a href="{{ url_for('dashboard.notifications') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body notification-area p-0">
+                    {% if unread_notifications %}
+                        <div class="list-group list-group-flush">
+                            {% for notification in unread_notifications %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ notification.title }}</h6>
+                                        <small class="text-muted">{{ notification.created_at.strftime('%H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ notification.message }}</p>
+                                    {% if notification.related_to == 'event' %}
+                                        <small>
+                                            <a href="{{ url_for('events.view_event', event_id=notification.reference_id) }}">View Event</a>
+                                        </small>
+                                    {% elif notification.related_to == 'outpass' %}
+                                        <small>
+                                            <a href="{{ url_for('outpass.view_outpass', outpass_id=notification.reference_id) }}">View Out Pass</a>
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="far fa-bell fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">No new notifications</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analytics Section -->
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Event Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="eventStatusChart" data-chart="{{ event_stats | tojson }}"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Out Pass Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="outpassStatusChart" data-chart="{{ outpass_stats | tojson }}"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Events by Day of Week</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="eventsByDayChart" data-chart="{{ events_by_day | tojson }}"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upcoming Events Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Upcoming Events</h5>
+            <a href="{{ url_for('events.list_events') }}" class="btn btn-sm btn-outline-primary">View All Events</a>
+        </div>
+        <div class="card-body">
+            {% if upcoming_events %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Organizer</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in upcoming_events %}
+                                <tr>
+                                    <td>{{ event.title }}</td>
+                                    <td>{{ event.creator.first_name }} {{ event.creator.last_name }}</td>
+                                    <td>{{ event.start_time.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ event.start_time.strftime('%H:%M') }} - {{ event.end_time.strftime('%H:%M') }}</td>
+                                    <td>{{ event.location }}</td>
+                                    <td>
+                                        <span class="badge {{ event.status | get_status_badge_class }}">
+                                            {{ event.status | title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('events.view_event', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('attendance.view_attendance', event_id=event.id) }}" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-clipboard-list"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="far fa-calendar fa-3x mb-3 text-muted"></i>
+                    <p class="text-muted">No upcoming events</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                                <p class="mb-0">Manage Events</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('outpass.list_outpasses') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-sign-out-alt fa-2x mb-2"></i>
+                                <p class="mb-0">Manage Out Passes</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-user-edit fa-2x mb-2"></i>
+                                <p class="mb-0">Edit Profile</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

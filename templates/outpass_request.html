@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+
+{% block title %}Request Out Pass | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Request Out Pass</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('outpass.request_outpass') }}">
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason for Out Pass</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" placeholder="Explain why you need to leave the campus" required></textarea>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="start_date" class="form-label">Leave Date</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="start_time" class="form-label">Leave Time</label>
+                                <input type="time" class="form-control" id="start_time" name="start_time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="end_date" class="form-label">Return Date</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_time" class="form-label">Return Time</label>
+                                <input type="time" class="form-control" id="end_time" name="end_time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('outpass.list_outpasses') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Out Passes
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Submit for Approval
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Guidelines for Out Pass Requests</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Provide a clear and valid reason for leaving the campus</li>
+                        <li>Specify exact times when you will leave and return</li>
+                        <li>Request must be submitted at least 1 day in advance for routine matters</li>
+                        <li>Emergency requests may be processed faster but require proper documentation</li>
+                        <li>Your request will be reviewed by your department's HOD</li>
+                        <li>You'll receive a notification once your request is processed</li>
+                        <li>Approved out passes must be shown to security personnel when leaving campus</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set min date for date pickers (today)
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('start_date').setAttribute('min', today);
+        document.getElementById('end_date').setAttribute('min', today);
+        
+        // Update end date min value when start date changes
+        document.getElementById('start_date').addEventListener('change', function() {
+            document.getElementById('end_date').setAttribute('min', this.value);
+            
+            // If end date is before start date, update it
+            if (document.getElementById('end_date').value < this.value) {
+                document.getElementById('end_date').value = this.value;
+            }
+        });
+    });
+</script>
+{% endblock %}

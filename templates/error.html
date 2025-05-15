@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block title %}Error | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="mb-4">
+                {% if error_code == 404 %}
+                    <i class="fas fa-map-signs fa-5x text-warning mb-4"></i>
+                    <h1 class="display-4">404</h1>
+                    <h2 class="mb-4">Page Not Found</h2>
+                    <p class="lead">The page you're looking for doesn't exist or has been moved.</p>
+                {% elif error_code == 403 %}
+                    <i class="fas fa-lock fa-5x text-danger mb-4"></i>
+                    <h1 class="display-4">403</h1>
+                    <h2 class="mb-4">Access Denied</h2>
+                    <p class="lead">You don't have permission to access this resource.</p>
+                {% elif error_code == 500 %}
+                    <i class="fas fa-exclamation-triangle fa-5x text-danger mb-4"></i>
+                    <h1 class="display-4">500</h1>
+                    <h2 class="mb-4">Server Error</h2>
+                    <p class="lead">Something went wrong on our end. Please try again later.</p>
+                {% else %}
+                    <i class="fas fa-exclamation-circle fa-5x text-warning mb-4"></i>
+                    <h1 class="display-4">Oops!</h1>
+                    <h2 class="mb-4">{{ error_title | default('Something Went Wrong') }}</h2>
+                    <p class="lead">{{ error_message | default('An unexpected error occurred. Please try again.') }}</p>
+                {% endif %}
+            </div>
+            
+            {% if error_details %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="mb-3">Error Details</h5>
+                    <pre class="bg-dark p-3 rounded text-white mb-0">{{ error_details }}</pre>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="mt-4">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary me-2">
+                    <i class="fas fa-home me-2"></i>Go to Dashboard
+                </a>
+                <button onclick="goBack()" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Go Back
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
+{% endblock %}

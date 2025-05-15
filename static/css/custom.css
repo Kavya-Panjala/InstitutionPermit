@@ -1,0 +1,185 @@
+/* Custom styling for the permission management system */
+
+/* Dark theme overrides and adjustments */
+body {
+    padding-top: 56px; /* For fixed navbar */
+}
+
+/* Custom card styling */
+.card {
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* Status badges */
+.status-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Timeline for event and outpass details */
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+    margin-bottom: 1rem;
+}
+
+.timeline:before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--bs-primary);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item:before {
+    content: '';
+    position: absolute;
+    left: -1.75rem;
+    top: 0.25rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--bs-primary);
+}
+
+/* Dashboard stat cards */
+.stat-card {
+    border-left: 4px solid var(--bs-primary);
+}
+
+.stat-card.pending {
+    border-left-color: var(--bs-warning);
+}
+
+.stat-card.approved {
+    border-left-color: var(--bs-success);
+}
+
+.stat-card.rejected {
+    border-left-color: var(--bs-danger);
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 1.5rem;
+}
+
+/* Custom scrollbar for notification area */
+.notification-area {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.notification-area::-webkit-scrollbar {
+    width: 8px;
+}
+
+.notification-area::-webkit-scrollbar-track {
+    background: var(--bs-dark);
+}
+
+.notification-area::-webkit-scrollbar-thumb {
+    background-color: var(--bs-secondary);
+    border-radius: 4px;
+}
+
+/* Card link hover effect */
+a.card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+a.card-link:hover .card {
+    border-color: var(--bs-primary);
+}
+
+/* Notification badge */
+.notification-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+}
+
+/* Event and outpass cards */
+.event-card, .outpass-card {
+    margin-bottom: 1rem;
+}
+
+/* Attendance table styling */
+.attendance-table .attended {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.attendance-table .absent {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Active item indicator */
+.sidebar .nav-link.active {
+    border-left: 4px solid var(--bs-primary);
+    padding-left: calc(1rem - 4px);
+}
+
+/* Dashboard summary indicators */
+.summary-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+/* Login and registration pages */
+.auth-container {
+    max-width: 450px;
+    margin: 2rem auto;
+}
+
+.auth-container .card {
+    border-radius: 10px;
+}
+
+/* Form validations */
+.is-invalid:focus {
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+.is-valid:focus {
+    box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+}
+
+/* Print styles for attendance export */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .attendance-table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    
+    .attendance-table th,
+    .attendance-table td {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+    }
+}

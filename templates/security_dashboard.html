@@ -1,0 +1,316 @@
+{% extends "layout.html" %}
+
+{% block title %}Security Dashboard | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Security Dashboard</h2>
+        <div>
+            <span class="badge bg-primary">Security Personnel</span>
+        </div>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card stat-card approved h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Active Out Passes</h6>
+                    <h3>{{ active_outpasses|length }}</h3>
+                    <small class="text-muted">Currently valid out passes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Today's Events</h6>
+                    <h3>{{ today_events|length }}</h3>
+                    <small class="text-muted">Total events happening today</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stat-card pending h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Current Time</h6>
+                    <h3 id="currentTime">00:00:00</h3>
+                    <small class="text-muted" id="currentDate">Loading date...</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Today's Events Section -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Today's Approved Events</h5>
+                    <a href="{{ url_for('events.list_events') }}" class="btn btn-sm btn-outline-primary">View All Events</a>
+                </div>
+                <div class="card-body">
+                    {% if today_events %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Event Title</th>
+                                        <th>Department</th>
+                                        <th>Location</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for event in today_events %}
+                                        <tr class="{{ 'table-active' if event.start_time <= now and event.end_time >= now else '' }}">
+                                            <td>{{ event.title }}</td>
+                                            <td>{{ event.department }}</td>
+                                            <td>{{ event.location }}</td>
+                                            <td>{{ event.start_time.strftime('%H:%M') }} - {{ event.end_time.strftime('%H:%M') }}</td>
+                                            <td>
+                                                {% if event.start_time <= now and event.end_time >= now %}
+                                                    <span class="badge bg-success">In Progress</span>
+                                                {% elif event.start_time > now %}
+                                                    <span class="badge bg-info">Upcoming</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Completed</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('events.view_event', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="far fa-calendar-alt fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">No events scheduled for today</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notifications Section -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Notifications</h5>
+                    <a href="{{ url_for('dashboard.notifications') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body notification-area p-0">
+                    {% if unread_notifications %}
+                        <div class="list-group list-group-flush">
+                            {% for notification in unread_notifications %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ notification.title }}</h6>
+                                        <small class="text-muted">{{ notification.created_at.strftime('%H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ notification.message }}</p>
+                                    {% if notification.related_to == 'event' %}
+                                        <small>
+                                            <a href="{{ url_for('events.view_event', event_id=notification.reference_id) }}">View Event</a>
+                                        </small>
+                                    {% elif notification.related_to == 'outpass' %}
+                                        <small>
+                                            <a href="{{ url_for('outpass.view_outpass', outpass_id=notification.reference_id) }}">View Out Pass</a>
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="far fa-bell fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">No new notifications</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Active Out Passes Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Active Out Passes</h5>
+            <a href="{{ url_for('outpass.list_outpasses') }}" class="btn btn-sm btn-outline-primary">View All Out Passes</a>
+        </div>
+        <div class="card-body">
+            {% if active_outpasses %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Student</th>
+                                <th>Department</th>
+                                <th>Leave Time</th>
+                                <th>Return Time</th>
+                                <th>Duration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for outpass in active_outpasses %}
+                                <tr>
+                                    <td>{{ outpass.id }}</td>
+                                    <td>
+                                        {% if students[outpass.user_id] %}
+                                            {{ students[outpass.user_id].first_name }} {{ students[outpass.user_id].last_name }}
+                                        {% else %}
+                                            Unknown
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if students[outpass.user_id] %}
+                                            {{ students[outpass.user_id].department }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ outpass.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ outpass.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% set duration = outpass.end_time - outpass.start_time %}
+                                        {% set hours = (duration.seconds // 3600) %}
+                                        {% set minutes = (duration.seconds % 3600) // 60 %}
+                                        {{ duration.days }} days, {{ hours }}h {{ minutes }}m
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('outpass.view_outpass', outpass_id=outpass.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-door-open fa-3x mb-3 text-muted"></i>
+                    <p class="text-muted">No active out passes at the moment</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Analytics Section -->
+    <div class="row">
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Out Passes - Last Week</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="outpassesByDayChart" 
+                                data-labels="{{ date_labels | tojson }}" 
+                                data-counts="{{ outpass_counts | tojson }}">
+                        </canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Security Guidelines</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Verify student identity against out pass details
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Ensure out pass is valid for the current time
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Check department and HOD approval
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Record entry/exit times manually if needed
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Report any suspicious activities immediately
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <a href="{{ url_for('outpass.list_outpasses') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-id-card fa-2x mb-2"></i>
+                                <p class="mb-0">Verify Out Pass</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                                <p class="mb-0">View All Events</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-user-shield fa-2x mb-2"></i>
+                                <p class="mb-0">My Profile</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Update current time
+    function updateClock() {
+        const now = new Date();
+        const timeElement = document.getElementById('currentTime');
+        const dateElement = document.getElementById('currentDate');
+        
+        if (timeElement && dateElement) {
+            timeElement.textContent = now.toLocaleTimeString();
+            dateElement.textContent = now.toLocaleDateString(undefined, { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+    }
+    
+    // Update time every second
+    setInterval(updateClock, 1000);
+    updateClock(); // Initial call
+</script>
+{% endblock %}

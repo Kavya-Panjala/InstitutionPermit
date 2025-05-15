@@ -1,0 +1,214 @@
+{% extends "layout.html" %}
+
+{% block title %}Attendance | {{ event.title }} | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Attendance Management</h4>
+                    <a href="{{ url_for('events.view_event', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Event
+                    </a>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3">{{ event.title }}</h5>
+                    <div class="mb-3 d-flex">
+                        <div class="me-4">
+                            <i class="fas fa-calendar-alt fa-fw me-2 text-muted"></i>
+                            <span>{{ event.start_time.strftime('%B %d, %Y') }}</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-clock fa-fw me-2 text-muted"></i>
+                            <span>{{ event.start_time.strftime('%I:%M %p') }} - {{ event.end_time.strftime('%I:%M %p') }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5>Attendance Records</h5>
+                        <div class="d-flex">
+                            <a href="{{ url_for('attendance.export_attendance', event_id=event.id) }}" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-file-export me-2"></i>Export
+                            </a>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-filter me-2"></i>Filter
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                                    <li><a class="dropdown-item filter-option" data-filter="all" href="#">All</a></li>
+                                    <li><a class="dropdown-item filter-option" data-filter="registered" href="#">Registered</a></li>
+                                    <li><a class="dropdown-item filter-option" data-filter="attended" href="#">Attended</a></li>
+                                    <li><a class="dropdown-item filter-option" data-filter="absent" href="#">Absent</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover attendance-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student</th>
+                                    <th>Department</th>
+                                    <th>Status</th>
+                                    <th>Check-in Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if attendance_records %}
+                                    {% for record in attendance_records %}
+                                    <tr class="attendance-row {{ record.status }}" data-status="{{ record.status }}">
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ record.user_details.first_name }} {{ record.user_details.last_name }}</td>
+                                        <td>{{ record.user_details.department }}</td>
+                                        <td>
+                                            <span class="badge {{ record.status | get_status_badge_class }}">
+                                                {{ record.status | title }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if record.check_in_time %}
+                                                {{ record.check_in_time.strftime('%Y-%m-%d %H:%M') }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if (current_user.role == 'hod' and event.department == current_user.department) or current_user.id == event.user_id %}
+                                                <form action="{{ url_for('attendance.mark_attendance', event_id=event.id) }}" method="POST" class="d-inline">
+                                                    <input type="hidden" name="user_id" value="{{ record.user_id }}">
+                                                    
+                                                    {% if record.status != 'attended' %}
+                                                    <button type="submit" name="status" value="attended" class="btn btn-sm btn-success" title="Mark as Attended">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                    
+                                                    {% if record.status != 'absent' %}
+                                                    <button type="submit" name="status" value="absent" class="btn btn-sm btn-danger" title="Mark as Absent">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </form>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">
+                                            No attendance records found
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Attendance Stats -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Attendance Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <h3 class="mb-0">{{ stats.total_registrations }}</h3>
+                            <small class="text-muted">Total</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="mb-0 text-success">{{ stats.total_attended }}</h3>
+                            <small class="text-muted">Attended</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="mb-0 text-danger">{{ stats.total_absent }}</h3>
+                            <small class="text-muted">Absent</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Attendance Rate</span>
+                            <span>{{ stats.attendance_rate }}%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ stats.attendance_rate }}%" aria-valuenow="{{ stats.attendance_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="attendanceChart" 
+                                data-registrations="{{ stats.total_registrations }}"
+                                data-attended="{{ stats.total_attended }}" 
+                                data-absent="{{ stats.total_absent }}">
+                        </canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Attendance Tips -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Attendance Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Mark attendance during or after the event
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Students can self check-in on the event page
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Export attendance for your records
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Use the filter to view specific attendance statuses
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Filter attendance records
+        const filterOptions = document.querySelectorAll('.filter-option');
+        filterOptions.forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                const filter = this.getAttribute('data-filter');
+                const rows = document.querySelectorAll('.attendance-row');
+                
+                rows.forEach(row => {
+                    if (filter === 'all' || row.getAttribute('data-status') === filter) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // Update dropdown button text
+                document.getElementById('filterDropdown').innerHTML = '<i class="fas fa-filter me-2"></i>Filter: ' + 
+                    (filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1));
+            });
+        });
+    });
+</script>
+{% endblock %}

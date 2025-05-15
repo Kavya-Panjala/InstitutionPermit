@@ -1,0 +1,255 @@
+{% extends "layout.html" %}
+
+{% block title %}Student Dashboard | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Student Dashboard</h2>
+        <div>
+            <span class="badge bg-primary">{{ current_user.department }}</span>
+        </div>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Events</h6>
+                    <h3>{{ total_events_created }}</h3>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ (total_events_approved / total_events_created * 100) if total_events_created > 0 else 0 }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ total_events_approved }} approved</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Out Passes</h6>
+                    <h3>{{ total_outpasses }}</h3>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ (total_outpasses_approved / total_outpasses * 100) if total_outpasses > 0 else 0 }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ total_outpasses_approved }} approved</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card pending h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Pending Requests</h6>
+                    <h3>{{ pending_events|length + pending_outpasses|length }}</h3>
+                    <div class="d-flex justify-content-between mt-2">
+                        <small class="text-muted">{{ pending_events|length }} events</small>
+                        <small class="text-muted">{{ pending_outpasses|length }} outpasses</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card approved h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Active Now</h6>
+                    <h3>{{ active_outpasses|length }}</h3>
+                    <small class="text-muted">Out passes active now</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Pending Events Column -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Pending Events</h5>
+                    <a href="{{ url_for('events.list_events') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if pending_events %}
+                        <div class="list-group">
+                            {% for event in pending_events %}
+                                <a href="{{ url_for('events.view_event', event_id=event.id) }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ event.title }}</h6>
+                                        <small class="badge bg-warning text-dark">Pending</small>
+                                    </div>
+                                    <p class="mb-1 text-truncate">{{ event.description }}</p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar-alt me-1"></i> {{ event.start_time.strftime('%Y-%m-%d %H:%M') }}
+                                    </small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-clipboard-check fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">No pending events</p>
+                            <a href="{{ url_for('events.create_event') }}" class="btn btn-sm btn-outline-primary">Create Event</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Upcoming Events Column -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Upcoming Events</h5>
+                    <a href="{{ url_for('events.list_events') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_events %}
+                        <div class="list-group">
+                            {% for event in upcoming_events %}
+                                <a href="{{ url_for('events.view_event', event_id=event.id) }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ event.title }}</h6>
+                                        <small class="badge bg-success">Approved</small>
+                                    </div>
+                                    <p class="mb-1 text-truncate">{{ event.description }}</p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar-alt me-1"></i> {{ event.start_time.strftime('%Y-%m-%d %H:%M') }}
+                                        <i class="fas fa-map-marker-alt ms-2 me-1"></i> {{ event.location }}
+                                    </small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="far fa-calendar fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">No upcoming events</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Out Passes Column -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Out Passes</h5>
+                    <a href="{{ url_for('outpass.list_outpasses') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if active_outpasses %}
+                        <h6 class="text-primary mb-3">Active Now</h6>
+                        <div class="list-group mb-4">
+                            {% for outpass in active_outpasses %}
+                                <a href="{{ url_for('outpass.view_outpass', outpass_id=outpass.id) }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <span>Active until {{ outpass.end_time.strftime('%H:%M') }}</span>
+                                        <small class="badge bg-success">Active</small>
+                                    </div>
+                                    <p class="mb-1">{{ outpass.reason }}</p>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if upcoming_outpasses %}
+                        <h6 class="text-primary mb-3">Upcoming</h6>
+                        <div class="list-group">
+                            {% for outpass in upcoming_outpasses %}
+                                <a href="{{ url_for('outpass.view_outpass', outpass_id=outpass.id) }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <span>{{ outpass.start_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                                        <small class="badge bg-info">Upcoming</small>
+                                    </div>
+                                    <p class="mb-1">{{ outpass.reason }}</p>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if not active_outpasses and not upcoming_outpasses %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-door-open fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">No active or upcoming out passes</p>
+                            <a href="{{ url_for('outpass.request_outpass') }}" class="btn btn-sm btn-outline-primary">Request Out Pass</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notifications Column -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Notifications</h5>
+                    <a href="{{ url_for('dashboard.notifications') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if unread_notifications %}
+                        <div class="list-group">
+                            {% for notification in unread_notifications %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ notification.title }}</h6>
+                                        <small class="text-muted">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ notification.message }}</p>
+                                    {% if notification.related_to == 'event' %}
+                                        <small>
+                                            <a href="{{ url_for('events.view_event', event_id=notification.reference_id) }}">View Event</a>
+                                        </small>
+                                    {% elif notification.related_to == 'outpass' %}
+                                        <small>
+                                            <a href="{{ url_for('outpass.view_outpass', outpass_id=notification.reference_id) }}">View Out Pass</a>
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="far fa-bell fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">No new notifications</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <a href="{{ url_for('events.create_event') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                                <p class="mb-0">Create New Event</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('outpass.request_outpass') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-sign-out-alt fa-2x mb-2"></i>
+                                <p class="mb-0">Request Out Pass</p>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-user-edit fa-2x mb-2"></i>
+                                <p class="mb-0">Edit Profile</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

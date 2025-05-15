@@ -1,0 +1,217 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ event.title }} | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Event Details</h4>
+                    <span class="badge {{ event.status | get_status_badge_class }} status-badge">{{ event.status | title }}</span>
+                </div>
+                <div class="card-body">
+                    <h2 class="mb-3">{{ event.title }}</h2>
+                    
+                    <div class="mb-4">
+                        <div class="d-flex mb-3">
+                            <div class="me-4">
+                                <i class="fas fa-calendar-alt fa-fw me-2 text-muted"></i> <strong>Date</strong>
+                                <div class="mt-1 ms-4">{{ event.start_time.strftime('%B %d, %Y') }}</div>
+                            </div>
+                            <div>
+                                <i class="fas fa-clock fa-fw me-2 text-muted"></i> <strong>Time</strong>
+                                <div class="mt-1 ms-4">{{ event.start_time.strftime('%I:%M %p') }} - {{ event.end_time.strftime('%I:%M %p') }}</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <i class="fas fa-map-marker-alt fa-fw me-2 text-muted"></i> <strong>Location</strong>
+                            <div class="mt-1 ms-4">{{ event.location }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <i class="fas fa-building fa-fw me-2 text-muted"></i> <strong>Department</strong>
+                            <div class="mt-1 ms-4">{{ event.department }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <i class="fas fa-user fa-fw me-2 text-muted"></i> <strong>Organizer</strong>
+                            <div class="mt-1 ms-4">{{ creator.first_name }} {{ creator.last_name }}</div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mb-3">Description</h5>
+                    <div class="p-3 bg-dark rounded mb-4">
+                        <p class="mb-0">{{ event.description }}</p>
+                    </div>
+                    
+                    {% if event.status in ['approved', 'rejected'] %}
+                    <h5 class="mb-3">Status Information</h5>
+                    <div class="p-3 {{ 'bg-success-subtle' if event.status == 'approved' else 'bg-danger-subtle' }} rounded mb-4">
+                        <p class="mb-2"><strong>{{ 'Approved' if event.status == 'approved' else 'Rejected' }} by:</strong> 
+                            {% if approver %}{{ approver.first_name }} {{ approver.last_name }}{% else %}Unknown{% endif %}
+                        </p>
+                        {% if event.reason %}
+                        <p class="mb-0"><strong>Reason:</strong> {{ event.reason }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex mt-4">
+                        <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Events
+                        </a>
+                        
+                        {% if current_user.role == 'student' and event.status == 'approved' %}
+                            {% if attendance and attendance.status == 'attended' %}
+                                <form action="{{ url_for('attendance.check_out', event_id=event.id) }}" method="POST" class="ms-auto">
+                                    <button type="submit" class="btn btn-outline-warning">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Check Out
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form action="{{ url_for('attendance.check_in', event_id=event.id) }}" method="POST" class="ms-auto">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Check In
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {% if not attendance %}
+                                <form action="{{ url_for('events.register_for_event', event_id=event.id) }}" method="POST" class="ms-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-calendar-check me-2"></i>Register
+                                    </button>
+                                </form>
+                            {% elif attendance.status == 'registered' %}
+                                <form action="{{ url_for('events.cancel_event_registration', event_id=event.id) }}" method="POST" class="ms-2">
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="fas fa-calendar-times me-2"></i>Cancel Registration
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% if current_user.id == event.user_id or (current_user.role == 'hod' and event.department == current_user.department) %}
+                            <a href="{{ url_for('attendance.view_attendance', event_id=event.id) }}" class="btn btn-info ms-auto">
+                                <i class="fas fa-clipboard-list me-2"></i>View Attendance
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if event.status == 'pending' and current_user.role == 'hod' and event.department == current_user.department %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Review Event Request</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('events.approve_event', event_id=event.id) }}" method="POST">
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Comments (Required for rejection)</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Add comments or reason for approval/rejection"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" name="decision" value="reject" class="btn btn-danger me-2">
+                                <i class="fas fa-times-circle me-2"></i>Reject
+                            </button>
+                            <button type="submit" name="decision" value="approve" class="btn btn-success">
+                                <i class="fas fa-check-circle me-2"></i>Approve
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Event Timeline -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Event Timeline</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">Event Created</h6>
+                                <small class="text-muted">{{ event.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <p class="mb-0 text-muted">Created by {{ creator.first_name }} {{ creator.last_name }}</p>
+                        </div>
+                        
+                        {% if event.status in ['approved', 'rejected'] %}
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">Event {{ event.status|title }}</h6>
+                                <small class="text-muted">{{ event.updated_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <p class="mb-0 text-muted">By {{ approver.first_name if approver else 'Unknown' }} {{ approver.last_name if approver else '' }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if event.status == 'approved' %}
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">Event Starts</h6>
+                                <small class="text-muted">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">Event Ends</h6>
+                                <small class="text-muted">{{ event.end_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Attendee List (for HOD and event creator) -->
+            {% if attendees and (current_user.id == event.user_id or current_user.role == 'hod') %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Attendees</h5>
+                    <span class="badge bg-secondary">{{ attendees|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if attendees %}
+                    <ul class="list-group">
+                        {% for record in attendees %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span>{{ record.user_details.first_name }} {{ record.user_details.last_name }}</span>
+                                <small class="d-block text-muted">{{ record.user_details.department }}</small>
+                            </div>
+                            <span class="badge {{ record.status | get_status_badge_class }}">{{ record.status | title }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-center text-muted py-3">No attendees yet</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- QR Code for Check-in (placeholder) -->
+            {% if event.status == 'approved' and current_user.id == event.user_id %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Attendance QR Code</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="bg-light p-3 mb-3 d-inline-block">
+                        <i class="fas fa-qrcode fa-5x"></i>
+                    </div>
+                    <p class="mb-0">Share this QR code for easy check-in</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

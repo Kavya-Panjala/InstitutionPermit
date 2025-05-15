@@ -1,0 +1,177 @@
+{% extends "layout.html" %}
+
+{% block title %}Events | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Events</h2>
+        {% if current_user.role == 'student' %}
+        <a href="{{ url_for('events.create_event') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Create Event
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Filter Options -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="statusFilter" class="form-label">Status</label>
+                    <select class="form-select filter-dropdown" id="statusFilter" data-filter-type="status">
+                        <option value="all">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="dateFilter" class="form-label">Date Range</label>
+                    <select class="form-select filter-dropdown" id="dateFilter" data-filter-type="date">
+                        <option value="all">All</option>
+                        <option value="today">Today</option>
+                        <option value="tomorrow">Tomorrow</option>
+                        <option value="upcoming">This Week</option>
+                        <option value="past">Past Events</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="search" placeholder="Search events...">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Events List -->
+    <div class="row" id="eventsList">
+        {% if events %}
+            {% for event in events %}
+                <div class="col-md-6 col-lg-4 mb-4 filterable" 
+                     data-status="{{ event.status }}" 
+                     data-date="{{ event.start_time.strftime('%Y-%m-%d') }}"
+                     data-title="{{ event.title.lower() }}">
+                    <div class="card h-100 event-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-truncate">{{ event.title }}</h5>
+                            <span class="badge {{ event.status | get_status_badge_class }}">{{ event.status | title }}</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-truncate mb-3">{{ event.description }}</p>
+                            <div class="mb-2">
+                                <i class="fas fa-calendar-alt fa-fw me-1 text-muted"></i>
+                                <span>{{ event.start_time.strftime('%B %d, %Y') }}</span>
+                            </div>
+                            <div class="mb-2">
+                                <i class="fas fa-clock fa-fw me-1 text-muted"></i>
+                                <span>{{ event.start_time.strftime('%I:%M %p') }} - {{ event.end_time.strftime('%I:%M %p') }}</span>
+                            </div>
+                            <div class="mb-2">
+                                <i class="fas fa-map-marker-alt fa-fw me-1 text-muted"></i>
+                                <span>{{ event.location }}</span>
+                            </div>
+                            <div>
+                                <i class="fas fa-building fa-fw me-1 text-muted"></i>
+                                <span>{{ event.department }}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{{ url_for('events.view_event', event_id=event.id) }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-eye me-2"></i>View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="far fa-calendar-alt fa-4x mb-3 text-muted"></i>
+                <h5 class="text-muted">No events found</h5>
+                {% if current_user.role == 'student' %}
+                <p>
+                    <a href="{{ url_for('events.create_event') }}" class="btn btn-primary mt-3">
+                        <i class="fas fa-plus-circle me-2"></i>Create Your First Event
+                    </a>
+                </p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Date filter functionality
+        const dateFilter = document.getElementById('dateFilter');
+        dateFilter.addEventListener('change', function() {
+            filterEvents();
+        });
+        
+        // Status filter functionality
+        const statusFilter = document.getElementById('statusFilter');
+        statusFilter.addEventListener('change', function() {
+            filterEvents();
+        });
+        
+        // Search functionality
+        const searchInput = document.getElementById('search');
+        searchInput.addEventListener('input', function() {
+            filterEvents();
+        });
+        
+        function filterEvents() {
+            const events = document.querySelectorAll('.filterable');
+            const statusValue = statusFilter.value;
+            const dateValue = dateFilter.value;
+            const searchValue = searchInput.value.toLowerCase();
+            
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            const nextWeekStr = nextWeek.toISOString().split('T')[0];
+            
+            events.forEach(event => {
+                const status = event.dataset.status;
+                const date = event.dataset.date;
+                const title = event.dataset.title;
+                
+                let statusMatch = statusValue === 'all' || status === statusValue;
+                let dateMatch = false;
+                let searchMatch = searchValue === '' || title.includes(searchValue);
+                
+                if (dateValue === 'all') {
+                    dateMatch = true;
+                } else if (dateValue === 'today') {
+                    dateMatch = date === today;
+                } else if (dateValue === 'tomorrow') {
+                    dateMatch = date === tomorrowStr;
+                } else if (dateValue === 'upcoming') {
+                    dateMatch = date >= today && date <= nextWeekStr;
+                } else if (dateValue === 'past') {
+                    dateMatch = date < today;
+                }
+                
+                if (statusMatch && dateMatch && searchMatch) {
+                    event.style.display = '';
+                } else {
+                    event.style.display = 'none';
+                }
+            });
+            
+            // Show or hide the no events message
+            const visibleEvents = document.querySelectorAll('.filterable[style=""]').length;
+            const noEventsMessage = document.getElementById('noEventsMessage');
+            
+            if (noEventsMessage) {
+                noEventsMessage.style.display = visibleEvents === 0 ? 'block' : 'none';
+            }
+        }
+    });
+</script>
+{% endblock %}

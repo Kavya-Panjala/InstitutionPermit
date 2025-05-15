@@ -1,0 +1,180 @@
+{% extends "layout.html" %}
+
+{% block title %}My Profile | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary">
+                    <h4 class="mb-0 text-white">My Profile</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-placeholder mb-3 mx-auto">
+                            <i class="fas fa-user-circle fa-6x text-secondary"></i>
+                        </div>
+                        <h3>{{ current_user.first_name }} {{ current_user.last_name }}</h3>
+                        <span class="badge {{ 'bg-info' if current_user.role == 'student' else 'bg-primary' if current_user.role == 'hod' else 'bg-secondary' }}">
+                            {{ current_user.role | title }}
+                        </span>
+                        {% if current_user.department %}
+                            <span class="badge bg-secondary ms-2">{{ current_user.department }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Username</h6>
+                            <p>{{ current_user.username }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Email</h6>
+                            <p>{{ current_user.email }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">First Name</h6>
+                            <p>{{ current_user.first_name }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Last Name</h6>
+                            <p>{{ current_user.last_name }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Role</h6>
+                            <p>{{ current_user.role | title }}</p>
+                        </div>
+                        {% if current_user.department %}
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Department</h6>
+                            <p>{{ current_user.department }}</p>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Account Created</h6>
+                            <p>{{ current_user.created_at.strftime('%B %d, %Y') }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Last Updated</h6>
+                            <p>{{ current_user.updated_at.strftime('%B %d, %Y') }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-center mt-3">
+                        <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-primary me-2">
+                            <i class="fas fa-user-edit me-2"></i>Edit Profile
+                        </a>
+                        <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-key me-2"></i>Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Activity Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Activity Summary</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_user.role == 'student' %}
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <h3>{{ current_user.events_created | length }}</h3>
+                                    <p class="mb-0 text-muted">Events Created</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <h3>{{ current_user.events_created | selectattr('status', 'equalto', 'approved') | list | length }}</h3>
+                                    <p class="mb-0 text-muted">Events Approved</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <h3>{{ current_user.outpasses | length }}</h3>
+                                    <p class="mb-0 text-muted">Out Passes</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <h3>{{ current_user.attendance_records | selectattr('status', 'equalto', 'attended') | list | length }}</h3>
+                                    <p class="mb-0 text-muted">Events Attended</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif current_user.role == 'hod' %}
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <h3>{{ events_approved | default(0) }}</h3>
+                                    <p class="mb-0 text-muted">Events Approved</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <h3>{{ outpasses_approved | default(0) }}</h3>
+                                    <p class="mb-0 text-muted">Out Passes Approved</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <h3>{{ pending_requests | default(0) }}</h3>
+                                    <p class="mb-0 text-muted">Pending Requests</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif current_user.role == 'security' %}
+                    <div class="row text-center">
+                        <div class="col-md-6 mb-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <h3>{{ active_outpasses | default(0) }}</h3>
+                                    <p class="mb-0 text-muted">Active Out Passes</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <h3>{{ today_events | default(0) }}</h3>
+                                    <p class="mb-0 text-muted">Today's Events</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-placeholder {
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: var(--bs-dark);
+    }
+</style>
+{% endblock %}

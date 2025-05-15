@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+
+{% block title %}Out Passes | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Out Passes</h2>
+        {% if current_user.role == 'student' %}
+        <a href="{{ url_for('outpass.request_outpass') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Request Out Pass
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Filter Options -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="statusFilter" class="form-label">Status</label>
+                    <select class="form-select filter-dropdown" id="statusFilter" data-filter-type="status">
+                        <option value="all">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="dateFilter" class="form-label">Date Range</label>
+                    <select class="form-select filter-dropdown" id="dateFilter" data-filter-type="date">
+                        <option value="all">All</option>
+                        <option value="active">Active Now</option>
+                        <option value="today">Today</option>
+                        <option value="tomorrow">Tomorrow</option>
+                        <option value="upcoming">This Week</option>
+                        <option value="past">Past</option>
+                    </select>
+                </div>
+                {% if current_user.role == 'hod' %}
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search Student</label>
+                    <input type="text" class="form-control" id="search" placeholder="Search by name...">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Out Passes List -->
+    <div class="row">
+        {% if outpasses %}
+            {% for outpass in outpasses %}
+                {% set is_active = outpass.start_time <= now and outpass.end_time >= now and outpass.status == 'approved' %}
+                <div class="col-md-6 col-lg-4 mb-4 filterable" 
+                     data-status="{{ outpass.status }}"
+                     data-date="{{ outpass.start_time.strftime('%Y-%m-%d') }}"
+                     data-active="{{ 'yes' if is_active else 'no' }}"
+                     data-student="{{ student_name if student_name is defined else '' }}">
+                    <div class="card h-100 outpass-card {{ 'border-success' if is_active else '' }}">
+                        <div class="card-header d-flex justify-content-between align-items-center {{ 'bg-success text-white' if is_active else '' }}">
+                            <h5 class="mb-0">Out Pass #{{ outpass.id }}</h5>
+                            <span class="badge {{ outpass.status | get_status_badge_class }}">{{ outpass.status | title }}</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-truncate mb-3">{{ outpass.reason }}</p>
+                            
+                            {% if current_user.role != 'student' %}
+                            <div class="mb-3">
+                                <i class="fas fa-user fa-fw me-1 text-muted"></i>
+                                <span>
+                                    {% if student_map is defined and outpass.user_id in student_map %}
+                                        {{ student_map[outpass.user_id] }}
+                                    {% elif student is defined %}
+                                        {{ student.first_name }} {{ student.last_name }}
+                                    {% else %}
+                                        Student #{{ outpass.user_id }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mb-2">
+                                <i class="fas fa-sign-out-alt fa-fw me-1 text-muted"></i>
+                                <span>{{ outpass.start_time.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                            </div>
+                            <div class="mb-2">
+                                <i class="fas fa-sign-in-alt fa-fw me-1 text-muted"></i>
+                                <span>{{ outpass.end_time.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                            </div>
+                            
+                            {% if is_active %}
+                            <div class="alert alert-success mt-3 mb-0">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Active Now</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer">
+                            <a href="{{ url_for('outpass.view_outpass', outpass_id=outpass.id) }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-eye me-2"></i>View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-id-card fa-4x mb-3 text-muted"></i>
+                <h5 class="text-muted">No out passes found</h5>
+                {% if current_user.role == 'student' %}
+                <p>
+                    <a href="{{ url_for('outpass.request_outpass') }}" class="btn btn-primary mt-3">
+                        <i class="fas fa-plus-circle me-2"></i>Request Your First Out Pass
+                    </a>
+                </p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Date filter functionality
+        const dateFilter = document.getElementById('dateFilter');
+        dateFilter.addEventListener('change', function() {
+            filterOutPasses();
+        });
+        
+        // Status filter functionality
+        const statusFilter = document.getElementById('statusFilter');
+        statusFilter.addEventListener('change', function() {
+            filterOutPasses();
+        });
+        
+        // Search functionality
+        const searchInput = document.getElementById('search');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                filterOutPasses();
+            });
+        }
+        
+        function filterOutPasses() {
+            const outpasses = document.querySelectorAll('.filterable');
+            const statusValue = statusFilter.value;
+            const dateValue = dateFilter.value;
+            const searchValue = searchInput ? searchInput.value.toLowerCase() : '';
+            
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            const nextWeekStr = nextWeek.toISOString().split('T')[0];
+            
+            outpasses.forEach(outpass => {
+                const status = outpass.dataset.status;
+                const date = outpass.dataset.date;
+                const active = outpass.dataset.active;
+                const student = outpass.dataset.student || '';
+                
+                let statusMatch = statusValue === 'all' || status === statusValue;
+                let dateMatch = false;
+                let searchMatch = searchValue === '' || student.toLowerCase().includes(searchValue);
+                
+                if (dateValue === 'all') {
+                    dateMatch = true;
+                } else if (dateValue === 'active') {
+                    dateMatch = active === 'yes';
+                } else if (dateValue === 'today') {
+                    dateMatch = date === today;
+                } else if (dateValue === 'tomorrow') {
+                    dateMatch = date === tomorrowStr;
+                } else if (dateValue === 'upcoming') {
+                    dateMatch = date >= today && date <= nextWeekStr;
+                } else if (dateValue === 'past') {
+                    dateMatch = date < today;
+                }
+                
+                if (statusMatch && dateMatch && searchMatch) {
+                    outpass.style.display = '';
+                } else {
+                    outpass.style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
