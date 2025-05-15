@@ -16,9 +16,9 @@ class User(UserMixin, db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    events_created = db.relationship('Event', backref='creator', lazy=True)
-    outpasses = db.relationship('OutPass', backref='student', lazy=True)
-    attendance_records = db.relationship('Attendance', backref='user', lazy=True)
+    events_created = db.relationship('Event', backref='creator', lazy=True, foreign_keys='Event.user_id')
+    outpasses = db.relationship('OutPass', backref='student', lazy=True, foreign_keys='OutPass.user_id')
+    attendance_records = db.relationship('Attendance', backref='user', lazy=True, foreign_keys='Attendance.user_id')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
