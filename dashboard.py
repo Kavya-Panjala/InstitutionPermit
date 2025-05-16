@@ -14,8 +14,6 @@ def index():
         return redirect(url_for('dashboard.student_dashboard'))
     elif current_user.role == 'hod':
         return redirect(url_for('dashboard.hod_dashboard'))
-    elif current_user.role == 'security':
-        return redirect(url_for('dashboard.security_dashboard'))
     return redirect(url_for('dashboard.student_dashboard'))  # Default fallback
 
 @dashboard_bp.route('/dashboard/student')
@@ -171,71 +169,7 @@ def hod_dashboard():
         events_by_day=events_by_day_dict
     )
 
-@dashboard_bp.route('/dashboard/security')
-@login_required
-def security_dashboard():
-    if current_user.role != 'security':
-        return redirect(url_for('dashboard.index'))
-        
-    # Get today's approved events
-    today = datetime.utcnow().date()
-    tomorrow = today + timedelta(days=1)
-    today_start = datetime.combine(today, datetime.min.time())
-    today_end = datetime.combine(tomorrow, datetime.min.time())
-    
-    today_events = Event.query.filter(
-        Event.status == 'approved',
-        Event.start_time >= today_start,
-        Event.start_time < today_end
-    ).order_by(Event.start_time).all()
-    
-    # Get active outpasses
-    active_outpasses = OutPass.query.filter(
-        OutPass.status == 'approved',
-        OutPass.start_time <= datetime.utcnow(),
-        OutPass.end_time >= datetime.utcnow()
-    ).all()
-    
-    # Get student details for outpasses
-    students = {}
-    for outpass in active_outpasses:
-        if outpass.user_id not in students:
-            students[outpass.user_id] = User.query.get(outpass.user_id)
-    
-    # Get unread notifications
-    unread_notifications = Notification.query.filter_by(
-        user_id=current_user.id,
-        is_read=False
-    ).order_by(Notification.created_at.desc()).limit(5).all()
-    
-    # Stats - outpasses per day in the last week
-    last_week = today - timedelta(days=7)
-    
-    outpasses_by_day = db.session.query(
-        func.date(OutPass.start_time), 
-        func.count(OutPass.id)
-    ).filter(
-        OutPass.status == 'approved',
-        OutPass.start_time >= last_week
-    ).group_by(func.date(OutPass.start_time)).all()
-    
-    date_labels = [(today - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7, -1, -1)]
-    outpass_counts = [0] * 8
-    
-    for date_str, count in outpasses_by_day:
-        if date_str.strftime('%Y-%m-%d') in date_labels:
-            idx = date_labels.index(date_str.strftime('%Y-%m-%d'))
-            outpass_counts[idx] = count
-            
-    return render_template(
-        'security_dashboard.html',
-        today_events=today_events,
-        active_outpasses=active_outpasses,
-        students=students,
-        unread_notifications=unread_notifications,
-        date_labels=date_labels,
-        outpass_counts=outpass_counts
-    )
+
 
 @dashboard_bp.route('/notifications')
 @login_required

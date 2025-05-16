@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block title %}Security Contacts | Permission Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Security Contacts</h2>
+        <a href="{{ url_for('outpass.add_security_contact') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Add New Contact
+        </a>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <p class="mb-0">
+                <i class="fas fa-info-circle me-2 text-primary"></i>
+                Security contacts will receive SMS notifications when student outpasses are approved.
+                Add phone numbers for security personnel who need to be notified about student movements.
+            </p>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% if contacts %}
+            {% for contact in contacts %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 {{ 'border-success' if contact.is_active else 'border-danger' }}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{{ contact.name }}</h5>
+                            <span class="badge {{ 'bg-success' if contact.is_active else 'bg-danger' }}">
+                                {{ 'Active' if contact.is_active else 'Inactive' }}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-phone fa-fw me-2 text-muted"></i>
+                                <span>{{ contact.phone_number }}</span>
+                            </div>
+                            <div class="mb-3">
+                                <i class="fas fa-calendar-alt fa-fw me-2 text-muted"></i>
+                                <span>Added on {{ contact.created_at.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex gap-2">
+                            <form action="{{ url_for('outpass.toggle_security_contact', contact_id=contact.id) }}" method="POST" class="flex-grow-1">
+                                <button type="submit" class="btn btn-outline-{{ 'danger' if contact.is_active else 'success' }} w-100">
+                                    <i class="fas fa-{{ 'pause' if contact.is_active else 'play' }} me-2"></i>
+                                    {{ 'Deactivate' if contact.is_active else 'Activate' }}
+                                </button>
+                            </form>
+                            <form action="{{ url_for('outpass.delete_security_contact', contact_id=contact.id) }}" method="POST" class="flex-grow-1">
+                                <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Are you sure you want to delete this contact?');">
+                                    <i class="fas fa-trash me-2"></i>Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-address-book fa-4x mb-3 text-muted"></i>
+                <h5 class="text-muted">No security contacts found</h5>
+                <p>
+                    <a href="{{ url_for('outpass.add_security_contact') }}" class="btn btn-primary mt-3">
+                        <i class="fas fa-plus-circle me-2"></i>Add Your First Security Contact
+                    </a>
+                </p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="card mt-3">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">About SMS Notifications</h5>
+        </div>
+        <div class="card-body">
+            <h6>How it works:</h6>
+            <ol>
+                <li>Add phone numbers for security personnel who need to be notified about student outpasses</li>
+                <li>When a student's outpass is approved, an SMS will be sent to all active security contacts</li>
+                <li>The SMS includes details about the student, departure/return times, and reason for the outpass</li>
+                <li>You can activate/deactivate contacts as needed without deleting them</li>
+            </ol>
+            <div class="alert alert-info">
+                <i class="fas fa-lightbulb me-2"></i>
+                <strong>Tip:</strong> Make sure phone numbers are entered in E.164 format (e.g., +1234567890) for proper delivery.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
