@@ -40,9 +40,9 @@ login_manager.login_view = 'auth.login'
 login_manager.login_message_category = 'info'
 
 # Register custom template filters
-from utils import timesince, get_status_badge_class
-app.jinja_env.filters['timesince'] = timesince
-app.jinja_env.filters['get_status_badge_class'] = get_status_badge_class
+import utils
+app.jinja_env.filters['timesince'] = utils.timesince
+app.jinja_env.filters['get_status_badge_class'] = utils.get_status_badge_class
 
 # Add context processor for global template variables
 @app.context_processor

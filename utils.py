@@ -1,7 +1,11 @@
 from datetime import datetime
+import os
+import logging
 from flask import flash, redirect, url_for
 from flask_login import current_user
 from functools import wraps
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 
 def role_required(*roles):
     """
@@ -75,3 +79,38 @@ def is_active_now(start_time, end_time):
     """Check if the event/outpass is currently active"""
     now = datetime.utcnow()
     return start_time <= now <= end_time
+    
+def send_sms_notification(to_phone_number, message):
+    """
+    Send SMS notification using Twilio
+    
+    Args:
+        to_phone_number (str): The phone number to send SMS to (E.164 format)
+        message (str): The message content
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    from_phone = os.environ.get("TWILIO_PHONE_NUMBER")
+    
+    if not all([account_sid, auth_token, from_phone]):
+        logging.error("Twilio credentials not configured")
+        return False
+    
+    try:
+        client = Client(account_sid, auth_token)
+        message = client.messages.create(
+            body=message,
+            from_=from_phone,
+            to=to_phone_number
+        )
+        logging.info(f"SMS sent successfully: {message.sid}")
+        return True
+    except TwilioRestException as e:
+        logging.error(f"Failed to send SMS: {str(e)}")
+        return False
+    except Exception as e:
+        logging.error(f"Unexpected error sending SMS: {str(e)}")
+        return False

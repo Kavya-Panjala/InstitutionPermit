@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db
-from models import OutPass, User, Notification
+from models import OutPass, User, Notification, SecurityContact
 from datetime import datetime
+from utils import send_sms_notification
+import logging
 
 outpass_bp = Blueprint('outpass', __name__)
 
@@ -157,17 +159,22 @@ def approve_outpass(outpass_id):
         )
         db.session.add(notification)
         
-        # Notify security guards
-        security_guards = User.query.filter_by(role='security').all()
-        for guard in security_guards:
-            notification = Notification(
-                user_id=guard.id,
-                title='New Approved Out Pass',
-                message=f'Out pass for {student.first_name} {student.last_name} has been approved from {outpass.start_time.strftime("%Y-%m-%d %H:%M")} to {outpass.end_time.strftime("%Y-%m-%d %H:%M")}',
-                related_to='outpass',
-                reference_id=outpass.id
-            )
-            db.session.add(notification)
+        # Send SMS notifications to security contacts
+        security_contacts = SecurityContact.query.filter_by(is_active=True).all()
+        if security_contacts:
+            sms_message = f"OUTPASS ALERT: {student.first_name} {student.last_name} from {student.department} has been approved for an outpass from {outpass.start_time.strftime('%b %d, %I:%M %p')} to {outpass.end_time.strftime('%b %d, %I:%M %p')}. Reason: {outpass.reason[:50]}..."
+            
+            for contact in security_contacts:
+                try:
+                    success = send_sms_notification(contact.phone_number, sms_message)
+                    if success:
+                        logging.info(f"SMS notification sent to {contact.name} ({contact.phone_number})")
+                    else:
+                        logging.warning(f"Failed to send SMS to {contact.name} ({contact.phone_number})")
+                except Exception as e:
+                    logging.error(f"Error sending SMS to {contact.name}: {str(e)}")
+        else:
+            logging.warning("No active security contacts found to send SMS notifications")
             
         flash('Out pass approved successfully', 'success')
         
@@ -222,3 +229,82 @@ def cancel_outpass(outpass_id):
     
     flash('Out pass cancelled successfully', 'info')
     return redirect(url_for('outpass.list_outpasses'))
+
+# Security contacts management routes
+@outpass_bp.route('/security-contacts')
+@login_required
+def security_contacts():
+    if current_user.role != 'hod':
+        flash('Only HODs can manage security contacts', 'danger')
+        return redirect(url_for('dashboard.index'))
+        
+    contacts = SecurityContact.query.order_by(SecurityContact.name).all()
+    return render_template('security_contacts.html', contacts=contacts)
+
+@outpass_bp.route('/security-contacts/add', methods=['GET', 'POST'])
+@login_required
+def add_security_contact():
+    if current_user.role != 'hod':
+        flash('Only HODs can manage security contacts', 'danger')
+        return redirect(url_for('dashboard.index'))
+        
+    if request.method == 'POST':
+        name = request.form.get('name')
+        phone_number = request.form.get('phone_number')
+        
+        if not all([name, phone_number]):
+            flash('Please fill in all required fields', 'danger')
+            return redirect(url_for('outpass.add_security_contact'))
+            
+        # Format phone number to E.164 format if needed
+        if not phone_number.startswith('+'):
+            phone_number = '+' + phone_number
+            
+        # Check if the phone number already exists
+        existing_contact = SecurityContact.query.filter_by(phone_number=phone_number).first()
+        if existing_contact:
+            flash('A contact with this phone number already exists', 'danger')
+            return redirect(url_for('outpass.add_security_contact'))
+            
+        new_contact = SecurityContact(
+            name=name,
+            phone_number=phone_number,
+            is_active=True
+        )
+        
+        db.session.add(new_contact)
+        db.session.commit()
+        
+        flash('Security contact added successfully', 'success')
+        return redirect(url_for('outpass.security_contacts'))
+        
+    return render_template('add_security_contact.html')
+
+@outpass_bp.route('/security-contacts/<int:contact_id>/toggle', methods=['POST'])
+@login_required
+def toggle_security_contact(contact_id):
+    if current_user.role != 'hod':
+        flash('Only HODs can manage security contacts', 'danger')
+        return redirect(url_for('dashboard.index'))
+        
+    contact = SecurityContact.query.get_or_404(contact_id)
+    contact.is_active = not contact.is_active
+    db.session.commit()
+    
+    status = 'activated' if contact.is_active else 'deactivated'
+    flash(f'Security contact {status} successfully', 'success')
+    return redirect(url_for('outpass.security_contacts'))
+
+@outpass_bp.route('/security-contacts/<int:contact_id>/delete', methods=['POST'])
+@login_required
+def delete_security_contact(contact_id):
+    if current_user.role != 'hod':
+        flash('Only HODs can manage security contacts', 'danger')
+        return redirect(url_for('dashboard.index'))
+        
+    contact = SecurityContact.query.get_or_404(contact_id)
+    db.session.delete(contact)
+    db.session.commit()
+    
+    flash('Security contact deleted successfully', 'success')
+    return redirect(url_for('outpass.security_contacts'))
